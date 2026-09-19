@@ -1,0 +1,7 @@
+{
+  "go": "1.25.12",
+  "go_sdk": "v1.7.0",
+  "github_mcp": "v1.12.2",
+  "github_mcp_linux_amd64_archive_sha256": "95843162759da2c31dde082dd145be35db82164594796c294414b69790c2290e",
+  "status": "selected; compatibility probe pending"
+}

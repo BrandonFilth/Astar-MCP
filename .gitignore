@@ -1,0 +1,37 @@
+# Credentials and local configuration
+.env
+.env.*
+!.env.example
+*.secret
+# Generated data, dependencies and binaries
+/data/
+/cache/
+/bin/
+/dist/
+/coverage/
+*.log
+*.test
+node_modules/
+# Editor state
+.idea/
+.vscode/
+.DS_Store
+
+# Python validation artifacts
+__pycache__/
+*.pyc
+
+# Local planning, instructions, notes, and generated evidence are not public.
+/.local/
+/docs/
+*.md
+!/README.md
+/AGENTS.md
+/.agents/
+/.codex/
+/.claude/
+/.kiro/
+# Design-only files; do not publish until used by implemented code.
+/config/catalog.yaml
+/config/sources.json
+/scripts/check-plan.py
