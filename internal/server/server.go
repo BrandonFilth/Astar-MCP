@@ -52,6 +52,9 @@ func envelope(data any, state string) Output {
 }
 func failure(err error) (*mcp.CallToolResult, Output, error) {
 	code := "UPSTREAM_UNAVAILABLE"
+	if err.Error() == "NOT_FOUND" {
+		code = "NOT_FOUND"
+	}
 	for _, known := range []error{gh.ErrInput, gh.ErrScope, gh.ErrRef, gh.ErrIncompatible} {
 		if errors.Is(err, known) {
 			code = known.Error()
@@ -66,7 +69,7 @@ func New(reader Reader, store *storage.Store) *mcp.Server {
 		if err != nil {
 			return failure(err)
 		}
-		return nil, envelope(map[string]any{"modules": map[string]string{"github": reader.Status(), "storage": "ready", "aradia": "not_implemented", "docs": "not_implemented", "ecosystem": "not_implemented", "network": "not_implemented"}, "observations": observations}, "unknown"), nil
+		return nil, envelope(map[string]any{"modules": map[string]string{"github": reader.Status(), "storage": "ready", "aradia": "not_implemented", "docs": catalogStatus(ctx, store, "astar-docs", "aradia-docs"), "ecosystem": catalogStatus(ctx, store, "ecosystem"), "network": "not_implemented"}, "observations": observations}, "unknown"), nil
 	})
 	mcp.AddTool(s, &mcp.Tool{Name: "get_code_file", Description: "Read up to 300 lines of an Astar source file at an explicit full commit SHA. Branch names are not supported. Repository code does not prove active chain behavior.", Annotations: &mcp.ToolAnnotations{ReadOnlyHint: true}}, func(ctx context.Context, _ *mcp.CallToolRequest, in FileInput) (*mcp.CallToolResult, Output, error) {
 		ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
@@ -123,5 +126,6 @@ func New(reader Reader, store *storage.Store) *mcp.Server {
 		}
 		return nil, out, nil
 	})
+	addCatalog(s, store)
 	return s
 }

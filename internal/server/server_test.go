@@ -53,7 +53,7 @@ func TestProtocolAndFailureIsolation(t *testing.T) {
 	}
 	defer session.Close()
 	list, err := session.ListTools(ctx, nil)
-	if err != nil || len(list.Tools) != 2 {
+	if err != nil || len(list.Tools) != 7 {
 		t.Fatal(list, err)
 	}
 	call := func(name string, args map[string]any) *mcp.CallToolResult {

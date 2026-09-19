@@ -18,3 +18,4 @@ probe-github:
 build:
 	mkdir -p bin
 	go build -o bin/astar-mcp ./cmd/astar-mcp
+	go build -o bin/astar-sync ./cmd/astar-sync

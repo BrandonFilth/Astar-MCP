@@ -40,11 +40,16 @@ func Open(ctx context.Context, dir string) (*Store, error) {
 	defer tx.Rollback()
 	var version int
 	failTx := func() (*Store, error) { _ = tx.Rollback(); return fail() }
-	if tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version) != nil || version > 1 {
+	if tx.QueryRowContext(ctx, "PRAGMA user_version").Scan(&version) != nil || version > 2 {
 		return failTx()
 	}
 	if version == 0 {
 		if _, err = tx.ExecContext(ctx, `CREATE TABLE observations (provider TEXT PRIMARY KEY, status TEXT NOT NULL, checked_at TEXT NOT NULL); PRAGMA user_version=1;`); err != nil {
+			return failTx()
+		}
+	}
+	if version < 2 {
+		if _, err = tx.ExecContext(ctx, `CREATE TABLE snapshots (source TEXT PRIMARY KEY, revision TEXT NOT NULL, updated_at TEXT NOT NULL, data TEXT NOT NULL); PRAGMA user_version=2;`); err != nil {
 			return failTx()
 		}
 	}

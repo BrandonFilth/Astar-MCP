@@ -2,7 +2,7 @@
 
 Read-only tooling for Astar, with optional Soneium ecosystem coverage.
 
-The local MCP server exposes `get_service_status` and `get_code_file`. File reads
+The local MCP server exposes status, source-file, ecosystem, and documentation tools. File reads
 use the official GitHub MCP server as a separate read-only process. Source
 verification scripts are also included. The live integration probe validates both
 the official provider and the service tool against an immutable Astar source revision.
@@ -72,7 +72,42 @@ Responses are bounded. Oversized lines currently return an error; request a smal
 line range. The official provider may return a link instead of large file contents;
 this server does not fetch those links automatically.
 
-The server stores only provider status observations in `MCP_DATA_DIR/state.sqlite`.
+The server stores provider observations and imported public source snapshots in
+`MCP_DATA_DIR/state.sqlite`.
 It creates and migrates its own SQLite database and never connects to Aradia databases.
-Data directory failures stop startup. Source data and credentials are not stored in
-this database. Modules without implementations are reported as `not_implemented`.
+Data directory failures stop startup. Credentials are never stored in this database.
+Modules without implementations are reported as `not_implemented`.
+
+## Ecosystem and documentation
+
+`search_projects` supports `query`, `network` (`astar` or `soneium`), `category`,
+`limit` (1–25), and `cursor`. `get_project` takes a directory `id`.
+`list_categories` lists categories in the imported directory. Listings are source
+claims, not verification of deployment or endorsement. Missing websites are omitted.
+
+`search_docs` takes a literal text `query`, optional `limit`, and `cursor`.
+`get_document` takes an `id` from search, plus optional `start_line` and `end_line`
+(up to 100 lines). Responses contain source links, revision or content digest,
+import timestamp, and warnings for snapshots older than 24 hours. A cursor is valid
+only for its original filters and source content. Reduce the limit or line range
+if a response exceeds the output budget.
+
+Resources: `astar://scope`, `astar://sources`, `astar://ecosystem/categories`.
+These describe source boundaries and imported categories; they do not run refreshes.
+
+The operator refreshes data using `bin/astar-sync`, built by `make build`, with
+`MCP_DATA_DIR` pointing to the same directory as the server:
+
+```sh
+bin/astar-sync --source ecosystem
+bin/astar-sync --source aradia-docs
+bin/astar-sync --source astar-docs --revision FULL_COMMIT_SHA --paths docs/build/EVM/index.md,docs/build/EVM/precompiles/staking.md
+```
+
+Astar documentation imports require the GitHub operator configuration described
+above. Paths are selected by the operator and must exist at the specified revision;
+this is a selected corpus, not a complete mirror. Each successful import replaces
+that source atomically. Partial downloads retain the previous copy. To follow a
+rename, update the selected path and revision together. Removed or unselected IDs
+return `NOT_FOUND`; the service does not guess redirects. Schedule refreshes using
+your process manager if needed. No refresh operation is exposed to MCP users.
