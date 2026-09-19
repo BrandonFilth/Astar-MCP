@@ -10,6 +10,9 @@ import (
 	"strconv"
 	"time"
 
+	gh "github.com/BrandonFilth/Astar-MCP/internal/github"
+	"github.com/BrandonFilth/Astar-MCP/internal/server"
+	"github.com/BrandonFilth/Astar-MCP/internal/storage"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -102,5 +105,65 @@ func run() ([]check, bool) {
 		}
 		checks = append(checks, check{"astar_pr_" + method, "passed", "non-error MCP response"})
 	}
-	return checks, true
+
+	revision := os.Getenv("GITHUB_PROBE_REVISION")
+	if revision == "" {
+		return append(checks, check{"astar_service_file", "blocked", "GITHUB_PROBE_REVISION must identify an immutable Astar commit"}), false
+	}
+	if !probeService(ctx, binary, token, revision) {
+		return append(checks, check{"astar_service_file", "failed", "service file read or provenance validation failed"}), false
+	}
+	return append(checks, check{"astar_service_file", "passed", "Astar MCP tool -> official GitHub MCP -> immutable file and source reference"}), true
+}
+
+func probeService(ctx context.Context, binary, token, revision string) bool {
+	dir, err := os.MkdirTemp("", "astar-live-probe-")
+	if err != nil {
+		return false
+	}
+	defer os.RemoveAll(dir)
+	store, err := storage.Open(ctx, dir)
+	if err != nil {
+		return false
+	}
+	defer store.Close()
+	provider := gh.New(binary, token)
+	defer provider.Close()
+	service := server.New(provider, store)
+	a, b := mcp.NewInMemoryTransports()
+	ss, err := service.Connect(ctx, a, nil)
+	if err != nil {
+		return false
+	}
+	defer ss.Close()
+	client := mcp.NewClient(&mcp.Implementation{Name: "astar-service-probe", Version: "0.1.0"}, nil)
+	cs, err := client.Connect(ctx, b, nil)
+	if err != nil {
+		return false
+	}
+	defer cs.Close()
+	result, err := cs.CallTool(ctx, &mcp.CallToolParams{Name: "get_code_file", Arguments: map[string]any{
+		"repository": "AstarNetwork/Astar", "path": "Cargo.toml", "ref": revision, "start_line": 1, "end_line": 10,
+	}})
+	if err != nil || result == nil || result.IsError {
+		return false
+	}
+	raw, err := json.Marshal(result.StructuredContent)
+	if err != nil {
+		return false
+	}
+	var output struct {
+		Data struct {
+			Text     string `json:"text"`
+			Revision string `json:"revision"`
+		}
+		Sources       []server.Source `json:"sources"`
+		EvidenceState string          `json:"evidence_state"`
+	}
+	if json.Unmarshal(raw, &output) != nil {
+		return false
+	}
+	expected := "https://github.com/AstarNetwork/Astar/blob/" + revision + "/Cargo.toml#L1-L10"
+	return output.Data.Text != "" && output.Data.Revision == revision && output.EvidenceState == "repository" &&
+		len(output.Sources) == 1 && output.Sources[0].URL == expected && output.Sources[0].Revision == revision
 }

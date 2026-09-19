@@ -4,8 +4,8 @@ Read-only tooling for Astar, with optional Soneium ecosystem coverage.
 
 The local MCP server exposes `get_service_status` and `get_code_file`. File reads
 use the official GitHub MCP server as a separate read-only process. Source
-verification scripts are also included. Live GitHub integration has not yet been
-validated with a provider credential in this workspace.
+verification scripts are also included. The live integration probe validates both
+the official provider and the service tool against an immutable Astar source revision.
 
 ## Requirements
 
@@ -36,9 +36,11 @@ and are subject to provider availability and rate limits.
 - `GITHUB_PERSONAL_ACCESS_TOKEN`: a dedicated GitHub read credential.
 - `GITHUB_MCP_BINARY`: the absolute path to the installed binary.
 - `GITHUB_PROBE_PR`: an existing pull request number in `AstarNetwork/Astar`.
+- `GITHUB_PROBE_REVISION`: a full commit SHA in `AstarNetwork/Astar`.
 
 The probe checks tool discovery, file access, pull requests, changed files, and
-reviews. Missing credentials produce an explicit failure.
+reviews, and the service file tool with immutable source attribution. Missing
+credentials or revision inputs produce an explicit failure.
 
 Results are written to `.local/evidence/`, which is excluded from version control.
 `.env.example` lists configuration variables; environment files are not loaded
