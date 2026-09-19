@@ -35,3 +35,7 @@ __pycache__/
 /config/catalog.yaml
 /config/sources.json
 /scripts/check-plan.py
+
+# Local service storage, wherever configured inside this repository
+*.sqlite
+*.sqlite-*

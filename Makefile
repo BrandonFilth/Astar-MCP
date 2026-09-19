@@ -1,7 +1,7 @@
-.PHONY: check probe-sources probe-github install-github
+.PHONY: check probe-sources probe-github install-github build
 check:
 	go vet ./...
-	go test -p 1 ./...
+	go test -race -p 1 ./...
 
 install-github:
 	python3 scripts/install-github-mcp.py
@@ -14,3 +14,7 @@ probe-sources:
 probe-github:
 	mkdir -p .local/evidence
 	go run ./cmd/github-probe > .local/evidence/github.json
+
+build:
+	mkdir -p bin
+	go build -o bin/astar-mcp ./cmd/astar-mcp
